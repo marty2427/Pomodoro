@@ -453,8 +453,8 @@ $('#btn-test').addEventListener('click', () => {
   notify('Takhle vypadá oznámení', 'Pomodoro tě upozorní na konec bloku.');
 });
 
-$('#btn-defaults').addEventListener('click', () => {
-  if (!confirm('Obnovit výchozí nastavení?')) return;
+$('#btn-defaults').addEventListener('click', async () => {
+  if (!(await ask('Obnovit výchozí nastavení?', 'Délky bloků, upozornění i motiv se vrátí na původní hodnoty.', 'Obnovit'))) return;
   const wasFresh = !state.running && state.remaining === duration();
   settings = { ...DEFAULTS };
   save(KEYS.settings, settings);
@@ -464,8 +464,8 @@ $('#btn-defaults').addEventListener('click', () => {
   render();
 });
 
-$('#btn-clear-stats').addEventListener('click', () => {
-  if (!confirm('Opravdu smazat všechny statistiky?')) return;
+$('#btn-clear-stats').addEventListener('click', async () => {
+  if (!(await ask('Smazat statistiky?', 'Všechna dokončená pomodora a historie se nevratně smažou.', 'Smazat', true))) return;
   stats = { days: {}, log: [] };
   save(KEYS.stats, stats);
   renderStats();
@@ -473,6 +473,23 @@ $('#btn-clear-stats').addEventListener('click', () => {
 });
 
 /* ---------- Dialogy ---------- */
+// Vlastní potvrzovací dialog místo systémového confirm().
+function ask(title, text, okLabel, danger = false) {
+  const d = $('#sheet-confirm');
+  $('#confirm-title').textContent = title;
+  $('#confirm-text').textContent = text;
+  const ok = $('#confirm-ok');
+  ok.textContent = okLabel;
+  ok.classList.toggle('danger', danger);
+  d.returnValue = '';
+  d.showModal();
+  return new Promise((resolve) => {
+    d.addEventListener('close', () => resolve(d.returnValue === 'ok'), { once: true });
+  });
+}
+$('#confirm-ok').addEventListener('click', () => $('#sheet-confirm').close('ok'));
+$('#confirm-cancel').addEventListener('click', () => $('#sheet-confirm').close('cancel'));
+
 function openSheet(id) {
   const d = $(id);
   if (id === '#sheet-settings') renderSettings();
@@ -494,10 +511,11 @@ $('#btn-toggle').addEventListener('click', toggle);
 $('#btn-reset').addEventListener('click', reset);
 $('#btn-skip').addEventListener('click', skip);
 
-$$('.modes button').forEach((b) => b.addEventListener('click', () => {
+$$('.modes button').forEach((b) => b.addEventListener('click', async () => {
   const mode = b.dataset.mode;
   if (mode === state.mode) return;
-  if (state.running && state.mode === 'focus' && !confirm('Pomodoro běží. Opravdu ho přerušit?')) return;
+  if (state.running && state.mode === 'focus' &&
+      !(await ask('Přerušit pomodoro?', 'Rozběhnuté pomodoro se nezapočítá.', 'Přerušit', true))) return;
   setMode(mode);
 }));
 

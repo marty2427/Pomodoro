@@ -1,6 +1,6 @@
 // Service worker – aplikace funguje i offline.
 // Při každé změně souborů zvyš číslo verze, aby se cache obnovila.
-const CACHE = 'pomodoro-v1';
+const CACHE = 'pomodoro-v2';
 const ASSETS = [
   './',
   'index.html',

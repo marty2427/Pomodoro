@@ -569,6 +569,21 @@ kbd {
   font-weight: 600;
 }
 
+/* ---------- Confirm ---------- */
+.sheet-confirm h2 { margin: 6px 0 8px; font-size: 20px; }
+.sheet-confirm p { margin: 0 0 20px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn {
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.btn-ghost { background: var(--surface-2); }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary.danger { background: var(--danger); color: #fff; }
+.btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
