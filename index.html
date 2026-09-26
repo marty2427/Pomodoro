@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pomodoro</title>
+  <meta name="description" content="Jednoduchý Pomodoro časovač pro soustředěnou práci a studium." />
+  <meta name="theme-color" content="#101014" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pomodoro" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Nastaví motiv ještě před vykreslením, aby stránka neblikla.
+    try {
+      var s = JSON.parse(localStorage.getItem('pomodoro.settings') || '{}');
+      if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme;
+    } catch (e) {}
+  </script>
+</head>
+<body data-mode="focus">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8Z" fill="currentColor"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1.2" fill="currentColor"/><rect x="14" y="4.5" width="4" height="15" rx="1.2" fill="currentColor"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5.5v13a1 1 0 0 0 1.55.83l9.5-6.5a1 1 0 0 0 0-1.66l-9.5-6.5A1 1 0 0 0 5 5.5Z" fill="currentColor"/><rect x="17" y="5" width="2.6" height="14" rx="1.2" fill="currentColor"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-stats" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M6 12h12M12 6v12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" width="28" height="28" />
+        <span>Pomodoro</span>
+      </div>
+      <nav class="topbar-actions">
+        <button class="icon-btn" id="btn-stats" aria-label="Statistiky"><svg><use href="#i-stats"/></svg></button>
+        <button class="icon-btn" id="btn-info" aria-label="Jak to funguje"><svg><use href="#i-info"/></svg></button>
+        <button class="icon-btn" id="btn-settings" aria-label="Nastavení"><svg><use href="#i-settings"/></svg></button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <div class="modes" role="tablist" aria-label="Režim">
+        <span class="modes-pill" aria-hidden="true"></span>
+        <button role="tab" data-mode="focus" aria-selected="true">Soustředění</button>
+        <button role="tab" data-mode="short" aria-selected="false">Krátká pauza</button>
+        <button role="tab" data-mode="long" aria-selected="false">Dlouhá pauza</button>
+      </div>
+
+      <div class="dial" id="dial">
+        <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="ring-track" cx="100" cy="100" r="90" />
+          <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="90" />
+        </svg>
+        <div class="dial-center">
+          <div class="dial-label" id="mode-label">Soustředění</div>
+          <div class="time" id="time" role="timer" aria-live="off">25:00</div>
+          <div class="dial-sub" id="dial-sub">Kolo 1 ze 4</div>
+        </div>
+      </div>
+
+      <div class="cycle" id="cycle" aria-label="Postup v sadě"></div>
+
+      <label class="task">
+        <span class="visually-hidden">Na čem pracuješ</span>
+        <input id="task" type="text" maxlength="80" placeholder="Na čem teď pracuješ?" autocomplete="off" enterkeyhint="done" />
+      </label>
+
+      <div class="controls">
+        <button class="ctrl ctrl-sm" id="btn-reset" aria-label="Restartovat"><svg><use href="#i-reset"/></svg></button>
+        <button class="ctrl ctrl-main" id="btn-toggle" aria-label="Spustit"><svg><use href="#i-play" id="toggle-icon"/></svg></button>
+        <button class="ctrl ctrl-sm" id="btn-skip" aria-label="Přeskočit"><svg><use href="#i-skip"/></svg></button>
+      </div>
+    </main>
+
+    <footer class="today" id="today" role="button" tabindex="0" aria-label="Otevřít statistiky">
+      <div class="today-row">
+        <span class="today-title">Dnes</span>
+        <span class="today-value"><strong id="today-count">0</strong> / <span id="today-goal">8</span> pomodor · <span id="today-min">0</span> min</span>
+      </div>
+      <div class="bar"><span id="today-bar"></span></div>
+    </footer>
+  </div>
+
+  <!-- Nastavení -->
+  <dialog class="sheet" id="sheet-settings" aria-labelledby="settings-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="settings-title">Nastavení</h2>
+        <button class="icon-btn" data-close aria-label="Zavřít"><svg><use href="#i-close"/></svg></button>
+      </div>
+
+      <h3 class="group-title">Délky (minuty)</h3>
+      <div class="group">
+        <div class="row">
+          <span>Soustředění</span>
+          <div class="stepper" data-key="focus" data-min="1" data-max="120">
+            <button type="button" data-step="-1" aria-label="Méně"><svg><use href="#i-minus"/></svg></button>
+            <output></output>
+            <button type="button" data-step="1" aria-label="Více"><svg><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <span>Krátká pauza</span>
+          <div class="stepper" data-key="short" data-min="1" data-max="60">
+            <button type="button" data-step="-1" aria-label="Méně"><svg><use href="#i-minus"/></svg></button>
+            <output></output>
+            <button type="button" data-step="1" aria-label="Více"><svg><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <span>Dlouhá pauza</span>
+          <div class="stepper" data-key="long" data-min="1" data-max="90">
+            <button type="button" data-step="-1" aria-label="Méně"><svg><use href="#i-minus"/></svg></button>
+            <output></output>
+            <button type="button" data-step="1" aria-label="Více"><svg><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <span>Dlouhá pauza po<small>počet pomodor v sadě</small></span>
+          <div class="stepper" data-key="longEvery" data-min="2" data-max="10">
+            <button type="button" data-step="-1" aria-label="Méně"><svg><use href="#i-minus"/></svg></button>
+            <output></output>
+            <button type="button" data-step="1" aria-label="Více"><svg><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+        <div class="row">
+          <span>Denní cíl<small>pomodor za den</small></span>
+          <div class="stepper" data-key="dailyGoal" data-min="1" data-max="24">
+            <button type="button" data-step="-1" aria-label="Méně"><svg><use href="#i-minus"/></svg></button>
+            <output></output>
+            <button type="button" data-step="1" aria-label="Více"><svg><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="group-title">Průběh</h3>
+      <div class="group">
+        <label class="row">
+          <span>Automaticky spustit pauzu</span>
+          <input type="checkbox" class="switch" data-key="autoBreaks" />
+        </label>
+        <label class="row">
+          <span>Automaticky spustit další pomodoro</span>
+          <input type="checkbox" class="switch" data-key="autoFocus" />
+        </label>
+        <label class="row">
+          <span>Nechat displej zapnutý<small>když časovač běží</small></span>
+          <input type="checkbox" class="switch" data-key="wakeLock" />
+        </label>
+      </div>
+
+      <h3 class="group-title">Upozornění</h3>
+      <div class="group">
+        <label class="row">
+          <span>Zvuk</span>
+          <input type="checkbox" class="switch" data-key="sound" />
+        </label>
+        <label class="row">
+          <span>Hlasitost</span>
+          <input type="range" min="0" max="1" step="0.05" data-key="volume" class="range" />
+        </label>
+        <label class="row">
+          <span>Vibrace</span>
+          <input type="checkbox" class="switch" data-key="vibrate" />
+        </label>
+        <label class="row">
+          <span>Oznámení<small id="notify-hint">i když je aplikace na pozadí</small></span>
+          <input type="checkbox" class="switch" data-key="notify" />
+        </label>
+        <div class="row">
+          <span>Vyzkoušet</span>
+          <button type="button" class="chip" id="btn-test">Přehrát upozornění</button>
+        </div>
+      </div>
+
+      <h3 class="group-title">Vzhled</h3>
+      <div class="group">
+        <div class="row">
+          <span>Motiv</span>
+          <div class="segmented" id="theme-seg">
+            <button type="button" data-theme="auto">Auto</button>
+            <button type="button" data-theme="dark">Tmavý</button>
+            <button type="button" data-theme="light">Světlý</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="link-btn" id="btn-defaults">Obnovit výchozí nastavení</button>
+    </div>
+  </dialog>
+
+  <!-- Statistiky -->
+  <dialog class="sheet" id="sheet-stats" aria-labelledby="stats-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="stats-title">Statistiky</h2>
+        <button class="icon-btn" data-close aria-label="Zavřít"><svg><use href="#i-close"/></svg></button>
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><span class="tile-value" id="st-today">0</span><span class="tile-label">dnes</span></div>
+        <div class="tile"><span class="tile-value" id="st-week">0</span><span class="tile-label">7 dní</span></div>
+        <div class="tile"><span class="tile-value" id="st-streak">0</span><span class="tile-label">dní v řadě</span></div>
+        <div class="tile"><span class="tile-value" id="st-total">0 h</span><span class="tile-label">celkem</span></div>
+      </div>
+
+      <h3 class="group-title">Posledních 7 dní</h3>
+      <div class="chart" id="chart"></div>
+
+      <h3 class="group-title">Dnešní bloky</h3>
+      <ul class="log" id="log"></ul>
+
+      <button type="button" class="link-btn danger" id="btn-clear-stats">Smazat statistiky</button>
+    </div>
+  </dialog>
+
+  <!-- Jak to funguje -->
+  <dialog class="sheet" id="sheet-info" aria-labelledby="info-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="info-title">Jak na Pomodoro</h2>
+        <button class="icon-btn" data-close aria-label="Zavřít"><svg><use href="#i-close"/></svg></button>
+      </div>
+      <ol class="steps">
+        <li><strong>Vyber si jeden úkol.</strong> Napiš ho do pole „Na čem teď pracuješ?“.</li>
+        <li><strong>25 minut soustředění.</strong> Pracuješ jen na tom úkolu – bez telefonu, zpráv a sociálních sítí.</li>
+        <li><strong>Když tě něco napadne,</strong> zapiš si to na papír a vrať se k práci. Vyřešíš to v pauze.</li>
+        <li><strong>5 minut krátká pauza.</strong> Vstaň, protáhni se, napij se. Nedívej se do obrazovky.</li>
+        <li><strong>Po 4 pomodorech dlouhá pauza</strong> 15–30 minut. Pak začíná nová sada.</li>
+      </ol>
+      <div class="tip">
+        <strong>Tip:</strong> Když pomodoro přerušíš, nepočítá se. Raději ho restartuj a začni znovu – smyslem je nepřerušený blok soustředění.
+      </div>
+      <h3 class="group-title">Ovládání</h3>
+      <ul class="keys">
+        <li><span>Spustit / pozastavit</span><kbd>Mezerník</kbd></li>
+        <li><span>Restartovat blok</span><kbd>R</kbd></li>
+        <li><span>Přeskočit na další</span><kbd>S</kbd></li>
+      </ul>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
